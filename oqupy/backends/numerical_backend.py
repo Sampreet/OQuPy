@@ -46,20 +46,16 @@ class Numpy:
     def update(self, array, indices:tuple, values) -> default_np.ndarray:
         """Option to update select indices of an array with given values."""
         if not isinstance(array, default_np.ndarray):
-            import jax
-            return jax.block_until_ready(array.at[indices].set(values))
+            array = array.at[indices].set(values)
         array[indices] = values
         return array
 
     def get_random_floats(self, seed, shape):
         """Method to obtain random floats with a given seed and shape."""
         backend = object.__getattribute__(self, 'backend')
-        if not backend.ndarray == default_np.ndarray:
-            import jax
-            key = jax.random.key(seed)
-            _, subkey = jax.random.split(key)
-            return jax.random.normal(subkey, shape, dtype=self.dtype_float)
-        return backend.random.default_rng(seed).random(shape, self.dtype_float)
+        random_floats = default_np.random.default_rng(seed).random(shape, \
+                        dtype=default_np.float64)
+        return backend.array(random_floats, dtype=self.dtype_float)
 
 class LinAlg:
     """
