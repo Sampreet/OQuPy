@@ -16,8 +16,7 @@ Module for tensor network process tensor tempo backend.
 from typing import Callable, Dict, Optional, List
 
 import numpy as np
-from numpy import ndarray, zeros
-from numpy import max as numpy_max
+from numpy import ndarray
 
 from oqupy.backends import node_array as na
 from oqupy.config import NpDtype
@@ -113,48 +112,55 @@ class PtTempoBackend:
 
         if self._degeneracy_maps is not None:
             north_degeneracy_map, west_degeneracy_map = self._degeneracy_maps
-            tmp_north_deg_num_vals = numpy_max(north_degeneracy_map)+1
-            tmp_west_deg_num_vals = numpy_max(west_degeneracy_map)+1
+            tmp_north_deg_num_vals = np.max(north_degeneracy_map) + 1
+            tmp_west_deg_num_vals = np.max(west_degeneracy_map) + 1
 
         influences_mpo = []
         influences_mps = []
-        for i in range(self._num_infl):
-            if i == 0:
-                infl = self._influence(i)
-                infl = infl / scale
-                if self._degeneracy_maps is not None:
-                    tmp_mpo = zeros((tmp_west_deg_num_vals,
-                                     self._dimension**2,
-                                     tmp_north_deg_num_vals),
-                                    dtype=complex)
-                    tmp_mps = zeros((self._dimension**2,
-                                     tmp_north_deg_num_vals),
-                                    dtype=complex)
-                    for i1 in range(self._dimension**2):
-                        tmp_mpo[west_degeneracy_map[i1]][i1]\
-                            [north_degeneracy_map[i1]] = \
-                            infl[north_degeneracy_map[i1]]
-                        tmp_mps[i1][north_degeneracy_map[i1]] = \
-                            infl[north_degeneracy_map[i1]]/ scale
-                    infl_mpo = tmp_mpo
-                    infl_mps = tmp_mps
-                else:
-                    infl_mpo = util.create_delta(infl, [1, 1, 0])
-                    infl_mps = infl.T / scale
-            elif i == self._num_infl-1:
-                infl = self._influence(i)
-                infl_mpo = util.add_singleton(infl, 1)
-                infl_mpo = util.add_singleton(infl_mpo, 3)
-                infl_mps = util.add_singleton(infl, 2)
-            else:
-                infl = self._influence(i)
-                infl_mpo = util.create_delta(infl, [0, 1, 1, 0])
-                infl_mps = util.create_delta(infl / scale, [0, 1, 0])
 
+        # this block takes care of `i == 0`
+        infl = self._influence(0)
+        infl = infl / scale
+        if self._degeneracy_maps is not None:
+            infl_mpo = np.zeros((tmp_west_deg_num_vals, self._dimension**2,
+                                 tmp_north_deg_num_vals), \
+                                    dtype=NpDtype)
+            infl_mps = np.zeros((self._dimension**2,
+                                 tmp_north_deg_num_vals), \
+                                    dtype=NpDtype)
+            # a little bit of optimization is done here by
+            # removing the `for` loop and updating slices
+            _idxs = np.array(list(range(self._dimension**2)))
+            indices = (west_degeneracy_map[_idxs], _idxs,
+                       north_degeneracy_map[_idxs])
+            infl_mpo[indices] = infl[indices[2]]
+            infl_mps[indices[1:]] = infl[indices[2]] / scale
             influences_mpo.append(infl_mpo)
             influences_mps.append(infl_mps)
+        else:
+            influences_mpo.append(util.create_delta(infl, [1, 1, 0]))
+            influences_mps.append(infl.T / scale)
 
+        # this block takes care of `i > 0` and `i < self._num_infl - 1`
+        # TODO: optimize the inner `for` loop for parallelization
+        if self._num_infl > 2:
+            indices = list(range(1, self._num_infl - 1))
+            # influences_mpo += create_deltas(self._influence, indices,
+            #                                 [0, 1, 1, 0])
+            # influences_mps += create_deltas(self._influence, indices,
+            #                                 [0, 1, 0], scale)
+            for index in indices:
+                infl = self._influence(index)
+                influences_mpo.append(util.create_delta(infl, [0, 1, 1, 0]))
+                influences_mps.append(util.create_delta(infl / scale, \
+                                                        [0, 1, 0]))
 
+        # this block takes care of `i == self._num_infl - 1`
+        if self._num_infl > 1:
+            infl = self._influence(self._num_infl - 1)
+            infl_mpo = util.add_singleton(infl, 1)
+            influences_mpo.append(util.add_singleton(infl_mpo, 3))
+            influences_mps.append(util.add_singleton(infl, 2))
 
         self._mpo = na.NodeArray(influences_mpo,
                                  left=False,

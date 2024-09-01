@@ -19,12 +19,11 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from numpy import ndarray, moveaxis, expand_dims, eye, exp, outer,\
-    diag, array, kron, swapaxes, reshape, amax, argmax, dot, zeros
-from numpy import max as numpy_max
+    diag, array, kron, swapaxes, reshape, amax, argmax
 from scipy.linalg import svd, LinAlgError
 
 from oqupy import operators as op
-from oqupy.config import TEMPO_BACKEND_CONFIG
+from oqupy.config import TEMPO_BACKEND_CONFIG, NpDtype
 from oqupy.backends import node_array as na
 from oqupy.util import create_delta
 
@@ -400,41 +399,49 @@ class BaseTempoBackend:
         if self._degeneracy_maps is not None:
             north_degeneracy_map, west_degeneracy_map =\
                     self._degeneracy_maps
-            tmp_north_deg_num_vals = numpy_max(north_degeneracy_map)+1
-            tmp_west_deg_num_vals = numpy_max(west_degeneracy_map)+1
+            tmp_north_deg_num_vals = np.max(north_degeneracy_map) + 1
+            tmp_west_deg_num_vals = np.max(west_degeneracy_map) + 1
 
-        for i in range(dkmax_pre_compute):
-            infl = self._influence(i)
-            if i == 0:
-                if self._degeneracy_maps is not None:
-                    tmp=zeros((tmp_west_deg_num_vals,self._dim**2,
-                               tmp_north_deg_num_vals,self._dim**2),
-                              dtype=complex)
-                    for i1 in range(self._dim**2):
-                        tmp[west_degeneracy_map[i1]][i1] \
-                            [north_degeneracy_map[i1]][i1]= \
-                                infl[north_degeneracy_map[i1]]
-                    infl_four_legs = tmp
-                else:
-                    infl_four_legs = create_delta(infl, [1, 0, 0, 1])
-                tmp = dot(moveaxis(infl_four_legs, 1, -1),
-                        self._super_u_dagg)
-                tmp = moveaxis(tmp, -1, 1)
-                tmp = np.dot(tmp, self._super_u.T)
-                infl_four_legs = tmp
-            else:
-                infl_four_legs = create_delta(infl, [1, 0, 0, 1])
+        influences = []
 
-            influences.append(infl_four_legs)
+        # this block takes care of `i == 0`
+        infl = self._influence(0)
+        if self._degeneracy_maps is not None:
+            infl_four_legs = np.zeros((tmp_west_deg_num_vals, self._dim**2,
+                                       tmp_north_deg_num_vals, self._dim**2), \
+                                        dtype=NpDtype)
+            # a little bit of optimization is done here by
+            # removing the `for` loop and updating slices
+            _idxs = np.array(list(range(self._dim**2)))
+            indices = (west_degeneracy_map[_idxs], _idxs,
+                       north_degeneracy_map[_idxs], _idxs)
+            infl_four_legs[indices] = infl[indices[2]]
+        else:
+            infl_four_legs = create_delta(infl, [1, 0, 0, 1])
+        infl_four_legs = np.dot(np.moveaxis(infl_four_legs, 1, -1), \
+                                self._super_u_dagg)
+        infl_four_legs = np.moveaxis(infl_four_legs, -1, 1)
+        infl_four_legs = np.dot(infl_four_legs, self._super_u.T)
+        influences.append(infl_four_legs)
 
-        self._mps = na.NodeArray([self._initial_state],
-                                 left=False,
-                                 right=False,
-                                 name="Thee MPS")
+        # this block takes care of `i > 0`
+        # TODO: optimize the inner `for` loop for parallelization
+        if dkmax_pre_compute > 1:
+            indices = list(range(1, dkmax_pre_compute))
+            # influences += create_deltas(self._influence, indices,
+            #                             [1, 0, 0, 1])
+            for index in indices:
+                infl = self._influence(index)
+                influences.append(create_delta(infl, [1, 0, 0, 1]))
+
         self._mpo = na.NodeArray(list(reversed(influences)),
                                  left=True,
                                  right=True,
                                  name="Thee Time Evolving MPO")
+        self._mps = na.NodeArray([self._initial_state],
+                                 left=False,
+                                 right=False,
+                                 name="Thee MPS")
 
     def compute_system_step(self, current_step, prop_1, prop_2) -> ndarray:
         """
