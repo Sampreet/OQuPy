@@ -13,7 +13,7 @@
 Module for utilities.
 """
 
-import copy as cp
+from copy import copy
 from datetime import timedelta
 import sys
 from threading import Timer
@@ -146,17 +146,13 @@ def increase_list_of_index(
 
 def add_singleton(
         tensor: ndarray,
-        index: Optional[int] = -1,
-        copy: Optional[bool] = True) -> ndarray:
+        index: Optional[int] = -1) -> ndarray:
     """Add a singleton to a numpy tensor. """
-    if copy:
-        ten = cp.copy(tensor)
-    else:
-        ten = tensor
-    shape_list = list(ten.shape)
+    # TODO: Check if the array is being copied twice
+    tensor = copy(tensor)
+    shape_list = list(tensor.shape)
     shape_list.insert(index, 1)
-    ten.shape = tuple(shape_list)
-    return ten
+    return tensor.reshape(shape_list)
 
 def is_diagonal_matrix(tensor: ndarray):
     """Check if matrix is diagonal """
