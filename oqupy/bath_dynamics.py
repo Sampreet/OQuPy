@@ -440,13 +440,13 @@ class TwoTimeBathCorrelations(BaseAPIClass):
             im_kernel = np.update(
                 array=im_kernel,
                 indices=regions['a'],
-                values=((2 * n_1 + 1) * phase('a') -
-                        (2 * n_2 + 1) * phase('a', 1))
+                values=((2*n_1 + 1) * phase('a') -
+                        (2*n_2 + 1) * phase('a', 1))
             )
             im_kernel = np.update(
                 array=im_kernel,
                 indices=regions['b'],
-                values=(2 * n_1 + 1) * phase('b')
+                values=(2*n_1 + 1) * phase('b')
             )
             im_kernel = np.update(
                 array=im_kernel,
@@ -469,13 +469,13 @@ class TwoTimeBathCorrelations(BaseAPIClass):
             im_kernel = np.update(
                 array=im_kernel,
                 indices=regions['a'],
-                values=((2 * n_1 + 1) * phase('a') +
-                        (2 * n_2 + 1) * phase('a', 1))
+                values=((2*n_1 + 1) * phase('a') +
+                        (2*n_2 + 1) * phase('a', 1))
             )
             im_kernel = np.update(
                 array=im_kernel,
                 indices=regions['b'],
-                values=(2 * n_1 + 1) * phase('b')
+                values=(2*n_1 + 1) * phase('b')
             )
             im_kernel = np.update(
                 array=im_kernel,
@@ -498,13 +498,13 @@ class TwoTimeBathCorrelations(BaseAPIClass):
             im_kernel = np.update(
                 array=im_kernel,
                 indices=regions['a'],
-                values=- ((2 * n_1 + 1) * phase('a') +
-                        (2 * n_2 + 1) * phase('a', 1))
+                values=- ((2*n_1 + 1) * phase('a') +
+                        (2*n_2 + 1) * phase('a', 1))
             )
             im_kernel = np.update(
                 array=im_kernel,
                 indices=regions['b'],
-                values=- (2 * n_1 + 1) * phase('b')
+                values=- (2*n_1 + 1) * phase('b')
             )
             im_kernel = np.update(
                 array=im_kernel,
