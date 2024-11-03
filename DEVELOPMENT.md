@@ -1,6 +1,6 @@
 # Development
 
-The current development branch "jax" implements
+The current development branch "dev/jax" implements
 
 * [Experimental Support for GPUs/TPUs](#experimental-support-for-gpustpus)
 
@@ -10,7 +10,7 @@ Although OQuPy is built on top of the backend-agnostic
 [TensorNetwork](https://github.com/google/TensorNetwork) library,
 OQuPy uses vanilla NumPy and SciPy throughout its implementation.
 
-The "jax" branch adds supports for GPUs/TPUs via the
+The "dev/jax" branch adds supports for GPUs/TPUs via the
 [JAX](https://jax.readthedocs.io/en/latest/) library.
 A new `oqupy.backends.numerical_backend.py` module handles the
 [breaking changes in JAX NumPy](https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html),
@@ -19,7 +19,7 @@ without explicitly importing JAX-based libraries.
 
 ### Enabling Experimental Features
 
-To enable experimental features switch to the "jax" branch and use
+To enable experimental features switch to the `dev/jax` branch and use
 ```python
 from oqupy.backends import enable_gpu_features
 enable_gpu_features()
