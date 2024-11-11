@@ -4,12 +4,10 @@ import sys
 sys.path.insert(0, '.')
 # set the 'OQUPY_BACKEND' environment variable
 # to 'jax' to initialize JAX backend by default
-# or switch to JAX backend using oqupy.backends
 import oqupy
-from oqupy.backends import enable_jax_features
-# import NumPy from numerical_backend
-from oqupy.backends.numerical_backend import np
-enable_jax_features()
+# or switch to JAX backend using oqupy.backends
+# from oqupy.backends import enable_jax_features
+# enable_jax_features()
 
 import matplotlib.pyplot as plt
 sigma_x = oqupy.operators.sigma("x")
@@ -39,5 +37,4 @@ print(s_z)
 plt.plot(t, s_z, label=r'$\alpha=0.3$')
 plt.xlabel(r'$t\,\Omega$')
 plt.ylabel(r'$\langle\sigma_z\rangle$')
-#plt.savefig('simple_dynamics.png')
 plt.show()
